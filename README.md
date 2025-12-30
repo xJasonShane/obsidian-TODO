@@ -1,90 +1,143 @@
-# Obsidian Sample Plugin
+# TODO 待办事项插件
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+一个简洁高效的Obsidian待办事项管理插件，帮助你更好地组织和跟踪任务。
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## 功能特点
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- ✅ **任务管理**：创建、编辑、删除和标记任务
+- ⭐ **优先级设置**：支持低、中、高三种优先级
+- 📅 **截止日期**：可设置任务截止时间
+- 📊 **统计信息**：实时显示任务统计数据
+- 🔍 **灵活排序**：支持按创建时间、截止日期或优先级排序
+- 🎨 **美观界面**：现代化的卡片式布局
+- 📱 **响应式设计**：适配不同设备
+- 🌍 **完全汉化**：中文界面，易于使用
 
-## First time developing plugins?
+## 安装方法
 
-Quick starting guide for new plugin devs:
+### 从社区插件安装
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+暂未发布到社区插件库，敬请期待！
 
-## Releasing new releases
+<!-- 1. 在Obsidian中打开设置
+2. 点击「社区插件」
+3. 搜索「TODO 待办事项」
+4. 点击「安装」按钮
+5. 安装完成后点击「启用」按钮 -->
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+### 手动安装
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+1. 下载最新版本的插件文件：`main.js`、`styles.css`、`manifest.json`
+2. 复制到你的Obsidian库的插件目录：`VaultFolder/.obsidian/plugins/todo-plugin/`
+3. 在Obsidian设置中启用插件
 
-## Adding your plugin to the community plugin list
+## 使用指南
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### 基本操作
 
-## How to use
+1. **打开待办事项**：
+   - 点击左侧边栏的「待办事项」图标
+   - 或使用命令面板（Ctrl+P）搜索「打开待办事项」
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+2. **创建任务**：
+   - 点击「新建任务」按钮
+   - 填写任务标题、描述、优先级和截止日期
+   - 点击「保存」按钮
 
-## Manually installing the plugin
+3. **编辑任务**：
+   - 点击任务卡片上的「编辑」按钮
+   - 修改任务信息
+   - 点击「保存」按钮
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+4. **完成任务**：
+   - 勾选任务卡片上的复选框
+   - 或在编辑模态框中修改完成状态
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+5. **删除任务**：
+   - 点击任务卡片上的「删除」按钮
 
-## Funding URL
+### 设置选项
 
-You can include funding URLs where people who use your plugin can financially support it.
+在Obsidian设置中找到「待办事项插件设置」，可以：
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+- 选择是否显示已完成任务
+- 设置任务排序方式（创建时间、截止日期或优先级）
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+## 开发指南
+
+### 环境要求
+
+- Node.js 16+
+- npm 或 yarn
+
+### 开发步骤
+
+1. 克隆仓库：
+
+   ```bash
+   git clone https://github.com/yourusername/obsidian-todo-plugin.git
+   cd obsidian-todo-plugin
+   ```
+
+2. 安装依赖：
+
+   ```bash
+   npm install
+   ```
+
+3. 启动开发模式：
+
+   ```bash
+   npm run dev
+   ```
+
+4. 在Obsidian中测试：
+   - 复制插件目录到Obsidian库的插件文件夹
+   - 启用插件
+   - 进行开发和测试
+
+### 构建生产版本
+
+```bash
+npm run build
 ```
 
-If you have multiple URLs, you can also do:
+### 代码质量检查
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+```bash
+npm run lint
 ```
 
-## API Documentation
+## 插件结构
 
-See https://docs.obsidian.md
+```
+├── src/
+│   ├── main.ts          # 插件核心逻辑
+│   └── settings.ts      # 插件设置和数据结构
+├── styles.css           # 插件样式
+├── manifest.json        # 插件配置
+├── package.json         # 项目配置
+└── tsconfig.json        # TypeScript配置
+```
+
+## 技术栈
+
+- TypeScript
+- Obsidian API
+- CSS3
+
+## 贡献指南
+
+欢迎提交Issue和Pull Request！
+
+## 支持
+
+如果你喜欢这个插件，可以通过以下方式支持开发：
+
+- 给项目点个⭐️
+- 分享给你的朋友
+- 提交Issue和建议
+
+---
+
+**TODO 待办事项插件** - 让任务管理更简单高效！
