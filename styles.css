@@ -1,8 +1,256 @@
 /*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
+TODO Plugin CSS
 */
+
+/* 主要容器 */
+.todo-view {
+    padding: 1rem;
+}
+
+/* 标题 */
+.todo-view h2 {
+    margin-bottom: 1rem;
+    color: var(--text-normal);
+}
+
+/* 创建按钮 */
+.todo-create-button {
+    background-color: var(--interactive-accent);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    transition: background-color 0.2s;
+}
+
+.todo-create-button:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+/* 统计信息 */
+.todo-stats {
+    background-color: var(--background-secondary);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.todo-stats-text {
+    color: var(--text-muted);
+}
+
+/* TODO列表 */
+.todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* 单个TODO项 */
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background-color: var(--background-secondary);
+    padding: 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.todo-item:hover {
+    background-color: var(--background-secondary-alt);
+}
+
+/* 已完成的TODO项 */
+.todo-completed {
+    opacity: 0.7;
+}
+
+.todo-completed .todo-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.todo-completed .todo-description {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+/* 复选框 */
+.todo-checkbox {
+    margin-top: 0.25rem;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+/* TODO内容 */
+.todo-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.todo-title {
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: 0.25rem;
+    word-wrap: break-word;
+}
+
+.todo-description {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    word-wrap: break-word;
+}
+
+/* TODO元信息 */
+.todo-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* 优先级样式 */
+.todo-priority {
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.todo-priority-high {
+    background-color: rgba(255, 82, 82, 0.2);
+    color: #ff5252;
+}
+
+.todo-priority-medium {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+}
+
+.todo-priority-low {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+}
+
+/* 截止日期 */
+.todo-due-date {
+    font-style: italic;
+}
+
+/* 操作按钮 */
+.todo-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.todo-edit-button,
+.todo-delete-button {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.todo-edit-button {
+    background-color: var(--background-primary-alt);
+    color: var(--text-normal);
+}
+
+.todo-edit-button:hover {
+    background-color: var(--background-primary);
+}
+
+.todo-delete-button {
+    background-color: var(--background-primary-alt);
+    color: var(--text-error);
+}
+
+.todo-delete-button:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+/* 模态框样式 */
+.todo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.todo-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.todo-form-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.todo-input {
+    padding: 0.5rem;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 0.9rem;
+}
+
+.todo-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(79, 140, 201, 0.2);
+}
+
+.todo-input textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* 模态框按钮 */
+.todo-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.todo-save-button,
+.todo-cancel-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+}
+
+.todo-save-button {
+    background-color: var(--interactive-accent);
+    color: white;
+}
+
+.todo-save-button:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.todo-cancel-button {
+    background-color: var(--background-primary-alt);
+    color: var(--text-normal);
+}
+
+.todo-cancel-button:hover {
+    background-color: var(--background-primary);
+}

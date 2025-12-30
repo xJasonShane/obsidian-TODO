@@ -2,9 +2,8 @@ name: Node.js build
 
 on:
     push:
-        branches: ["**"]
-    pull_request:
-        branches: ["**"]
+        branches: ["main"]
+        tags: ["v*.*.*"]
 
 jobs:
     build:
@@ -12,7 +11,7 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [20.x, 22.x]
+                node-version: [22.x]
                 # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
         steps:
