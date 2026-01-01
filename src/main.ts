@@ -490,10 +490,11 @@ export default class MyPlugin extends Plugin {
 				workspace.revealLeaf(leaf);
 			}
 		} else {
-			const leaf = workspace.getRightLeaf(false);
+			const leaf = workspace.getLeaf('tab');
 			if (leaf) {
 				await leaf.setViewState({
-					type: VIEW_TYPE_TODO
+					type: VIEW_TYPE_TODO,
+					active: true
 				});
 				workspace.revealLeaf(leaf);
 			}
