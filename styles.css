@@ -478,14 +478,13 @@
     background-color: var(--background-primary);
 }
 
-.todo-input textarea {
+textarea.todo-input {
     resize: vertical;
     min-height: 80px;
     line-height: 1.5;
 }
 
-.todo-input[type="select"],
-.todo-input select {
+select.todo-input {
     padding: 0.65rem 2.5rem 0.65rem 0.8rem;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3l5 5 5-5z'/%3E%3C/svg%3E");
@@ -496,14 +495,23 @@
     height: auto;
     line-height: 1.5;
     cursor: pointer;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background-color: var(--background-secondary);
 }
 
-.todo-input[type="select"] option,
-.todo-input select option {
+select.todo-input option {
     padding: 0.5rem 0.8rem;
     background-color: var(--background-primary);
     color: var(--text-normal);
     white-space: nowrap;
+}
+
+select.todo-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 3px rgba(79, 140, 201, 0.15);
+    background-color: var(--background-primary);
 }
 
 /* 模态框按钮区域 */
