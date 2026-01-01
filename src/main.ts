@@ -1,12 +1,12 @@
-import {App, Modal, Notice, Plugin, WorkspaceLeaf, ItemView} from 'obsidian';
+import {App, Modal, Notice, Plugin, WorkspaceLeaf, ItemView, TFile} from 'obsidian';
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab, TodoItem, TodoPriority} from "./settings";
 
-// 视图类型常量
 export const VIEW_TYPE_TODO = 'todo-view';
 
-// TODO视图组件
 export class TodoView extends ItemView {
 	plugin: MyPlugin;
+	searchInput: HTMLInputElement;
+	filterSelect: HTMLSelectElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: MyPlugin) {
 		super(leaf);
@@ -21,8 +21,7 @@ export class TodoView extends ItemView {
 		return '待办事项';
 	}
 
-
-getIcon(): string {
+	getIcon(): string {
 		return 'check-square';
 	}
 
@@ -36,102 +35,223 @@ getIcon(): string {
 		return Promise.resolve();
 	}
 
-	// 渲染TODO列表
 	render(): void {
 		const {contentEl} = this;
 		contentEl.empty();
 
-		// 添加标题
-		contentEl.createEl('h2', {text: '待办事项'});
+		this.renderToolbar(contentEl);
+		this.renderStats(contentEl);
+		this.renderTodoList(contentEl);
+	}
 
-		// 添加创建新任务按钮
-		const createButton = contentEl.createEl('button', {
-			text: '新建任务',
+	renderToolbar(containerEl: HTMLElement): void {
+		const toolbarEl = containerEl.createEl('div', {cls: 'todo-toolbar'});
+
+		const searchGroup = toolbarEl.createEl('div', {cls: 'todo-toolbar-group'});
+		searchGroup.createEl('span', {text: '🔍', cls: 'todo-toolbar-icon'});
+		this.searchInput = searchGroup.createEl('input', {
+			type: 'text',
+			placeholder: '搜索任务...',
+			cls: 'todo-search-input'
+		}) as HTMLInputElement;
+		this.searchInput.addEventListener('input', () => {
+			this.renderTodoList(containerEl);
+		});
+
+		const filterGroup = toolbarEl.createEl('div', {cls: 'todo-toolbar-group'});
+		this.filterSelect = filterGroup.createEl('select', {cls: 'todo-filter-select'});
+		const filterOptions = [
+			{value: 'all', label: '全部'},
+			{value: 'high', label: '高优先级'},
+			{value: 'medium', label: '中优先级'},
+			{value: 'low', label: '低优先级'},
+			{value: 'completed', label: '已完成'},
+			{value: 'pending', label: '待办'}
+		];
+		filterOptions.forEach(option => {
+			const opt = document.createElement('option');
+			opt.value = option.value;
+			opt.textContent = option.label;
+			this.filterSelect.appendChild(opt);
+		});
+		this.filterSelect.addEventListener('change', () => {
+			this.renderTodoList(containerEl);
+		});
+
+		const createButton = toolbarEl.createEl('button', {
+			text: '+ 新建任务',
 			cls: 'todo-create-button'
 		});
 		createButton.addEventListener('click', () => {
 			new TodoModal(this.plugin, this, null).open();
 		});
-
-		// 添加统计信息
-		this.renderStats(contentEl);
-
-		// 添加TODO列表
-		this.renderTodoList(contentEl);
 	}
 
-	// 渲染统计信息
 	renderStats(containerEl: HTMLElement): void {
 		const statsEl = containerEl.createEl('div', {cls: 'todo-stats'});
 		const total = this.plugin.todos.length;
 		const completed = this.plugin.todos.filter(todo => todo.isCompleted).length;
 		const pending = total - completed;
 		const highPriority = this.plugin.todos.filter(todo => todo.priority === 'high' && !todo.isCompleted).length;
+		const overdue = this.plugin.todos.filter(todo => {
+			if (!todo.dueDate || todo.isCompleted) return false;
+			return new Date(todo.dueDate) < new Date();
+		}).length;
 
-		statsEl.createEl('div', {text: `总计: ${total} | 待办: ${pending} | 已完成: ${completed} | 高优先级: ${highPriority}`, cls: 'todo-stats-text'});
+		statsEl.innerHTML = `
+			<div class="todo-stat-item">
+				<div class="todo-stat-label">总计</div>
+				<div class="todo-stat-value">${total}</div>
+			</div>
+			<div class="todo-stat-item">
+				<div class="todo-stat-label">待办</div>
+				<div class="todo-stat-value todo-stat-pending">${pending}</div>
+			</div>
+			<div class="todo-stat-item">
+				<div class="todo-stat-label">已完成</div>
+				<div class="todo-stat-value todo-stat-completed">${completed}</div>
+			</div>
+			<div class="todo-stat-item">
+				<div class="todo-stat-label">高优先级</div>
+				<div class="todo-stat-value todo-stat-high">${highPriority}</div>
+			</div>
+			<div class="todo-stat-item">
+				<div class="todo-stat-label">已过期</div>
+				<div class="todo-stat-value todo-stat-overdue">${overdue}</div>
+			</div>
+		`;
 	}
 
-	// 渲染TODO列表
 	renderTodoList(containerEl: HTMLElement): void {
 		const listEl = containerEl.createEl('div', {cls: 'todo-list'});
 
-		// 根据设置过滤和排序任务
-		let filteredTodos = this.plugin.todos;
-		if (!this.plugin.settings.showCompleted) {
-			filteredTodos = filteredTodos.filter(todo => !todo.isCompleted);
-		}
-
-		// 排序
+		let filteredTodos = this.getFilteredTodos();
 		filteredTodos = this.sortTodos(filteredTodos);
 
-		// 渲染每个任务
+		if (filteredTodos.length === 0) {
+			this.renderEmptyState(listEl);
+			return;
+		}
+
 		filteredTodos.forEach(todo => {
-			const todoEl = listEl.createEl('div', {cls: `todo-item ${todo.isCompleted ? 'todo-completed' : ''}`});
-
-			// 任务复选框
-			const checkbox = todoEl.createEl('input', {
-				type: 'checkbox',
-				cls: 'todo-checkbox'
-			}) as HTMLInputElement;
-			checkbox.checked = todo.isCompleted;
-			checkbox.addEventListener('change', () => {
-				this.plugin.toggleTodo(todo.id);
-				this.render();
-			});
-
-			// 任务内容
-			const contentEl = todoEl.createEl('div', {cls: 'todo-content'});
-			contentEl.createEl('div', {text: todo.title, cls: 'todo-title'});
-			if (todo.description) {
-				contentEl.createEl('div', {text: todo.description, cls: 'todo-description'});
-			}
-
-			// 任务元信息
-			const metaEl = contentEl.createEl('div', {cls: 'todo-meta'});
-			metaEl.createEl('span', {text: todo.priority.toUpperCase(), cls: `todo-priority todo-priority-${todo.priority}`});
-			if (todo.dueDate) {
-				metaEl.createEl('span', {text: `Due: ${todo.dueDate}`, cls: 'todo-due-date'});
-			}
-
-			// 操作按钮
-			const actionsEl = todoEl.createEl('div', {cls: 'todo-actions'});
-
-			// 编辑按钮
-				const editButton = actionsEl.createEl('button', {text: '编辑', cls: 'todo-edit-button'});
-				editButton.addEventListener('click', () => {
-					new TodoModal(this.plugin, this, todo).open();
-				});
-
-				// 删除按钮
-				const deleteButton = actionsEl.createEl('button', {text: '删除', cls: 'todo-delete-button'});
-				deleteButton.addEventListener('click', () => {
-					this.plugin.deleteTodo(todo.id);
-					this.render();
-				});
+			this.renderTodoItem(listEl, todo);
 		});
 	}
 
-	// 排序TODO任务
+	renderEmptyState(containerEl: HTMLElement): void {
+		const emptyEl = containerEl.createEl('div', {cls: 'todo-empty-state'});
+		emptyEl.innerHTML = `
+			<div class="todo-empty-state-icon">📝</div>
+			<div class="todo-empty-state-text">暂无任务</div>
+			<div class="todo-empty-state-subtext">点击「新建任务」开始创建</div>
+		`;
+	}
+
+	renderTodoItem(containerEl: HTMLElement, todo: TodoItem): void {
+		const todoEl = containerEl.createEl('div', {cls: `todo-item ${todo.isCompleted ? 'todo-completed' : ''}`});
+
+		const checkbox = todoEl.createEl('input', {
+			type: 'checkbox',
+			cls: 'todo-checkbox'
+		}) as HTMLInputElement;
+		checkbox.checked = todo.isCompleted;
+		checkbox.addEventListener('change', () => {
+			this.plugin.toggleTodo(todo.id);
+			this.render();
+		});
+
+		const contentEl = todoEl.createEl('div', {cls: 'todo-content'});
+		
+		const titleEl = contentEl.createEl('div', {text: todo.title, cls: 'todo-title'});
+		
+		if (todo.description) {
+			contentEl.createEl('div', {text: todo.description, cls: 'todo-description'});
+		}
+
+		if (todo.tags && todo.tags.length > 0) {
+			const tagsEl = contentEl.createEl('div', {cls: 'todo-tags'});
+			todo.tags.forEach(tag => {
+				const tagEl = tagsEl.createEl('span', {text: `#${tag}`, cls: 'todo-tag'});
+				tagEl.addEventListener('click', (e) => {
+					e.stopPropagation();
+					this.searchInput.value = tag;
+					this.render();
+				});
+			});
+		}
+
+		const metaEl = contentEl.createEl('div', {cls: 'todo-meta'});
+		
+		const priorityLabels = {high: '高', medium: '中', low: '低'};
+		metaEl.createEl('span', {text: priorityLabels[todo.priority], cls: `todo-priority todo-priority-${todo.priority}`});
+		
+		if (todo.dueDate) {
+			const dueDate = new Date(todo.dueDate);
+			const isOverdue = dueDate < new Date() && !todo.isCompleted;
+			const dateText = this.formatDate(dueDate);
+			const dateEl = metaEl.createEl('span', {text: `📅 ${dateText}`, cls: `todo-due-date ${isOverdue ? "todo-due-overdue" : ""}`});
+		}
+
+		const actionsEl = todoEl.createEl('div', {cls: 'todo-actions'});
+
+		const editButton = actionsEl.createEl('button', {text: '编辑', cls: 'todo-edit-button'});
+		editButton.addEventListener('click', () => {
+			new TodoModal(this.plugin, this, todo).open();
+		});
+
+		const deleteButton = actionsEl.createEl('button', {text: '删除', cls: 'todo-delete-button'});
+		deleteButton.addEventListener('click', () => {
+			new ConfirmModal(this.plugin.app, '确认删除', '确定要删除这个任务吗？', async () => {
+				this.plugin.deleteTodo(todo.id);
+				this.render();
+			}).open();
+		});
+	}
+
+	getFilteredTodos(): TodoItem[] {
+		let todos = [...this.plugin.todos];
+		const searchTerm = this.searchInput.value.toLowerCase();
+		const filterValue = this.filterSelect.value;
+
+		if (searchTerm) {
+			todos = todos.filter(todo => 
+				todo.title.toLowerCase().includes(searchTerm) ||
+				(todo.description && todo.description.toLowerCase().includes(searchTerm)) ||
+				(todo.tags && todo.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+			);
+		}
+
+		if (filterValue === 'completed') {
+			todos = todos.filter(todo => todo.isCompleted);
+		} else if (filterValue === 'pending') {
+			todos = todos.filter(todo => !todo.isCompleted);
+		}
+
+		if (filterValue === 'high' || filterValue === 'medium' || filterValue === 'low') {
+			todos = todos.filter(todo => todo.priority === filterValue && !todo.isCompleted);
+		}
+
+		if (!this.plugin.settings.showCompleted && filterValue !== 'completed') {
+			todos = todos.filter(todo => !todo.isCompleted);
+		}
+
+		return todos;
+	}
+
+	formatDate(date: Date): string {
+		const now = new Date();
+		const diffTime = date.getTime() - now.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		if (diffDays === 0) return '今天';
+		if (diffDays === 1) return '明天';
+		if (diffDays === -1) return '昨天';
+		if (diffDays < -1) return `${Math.abs(diffDays)}天前`;
+		if (diffDays > 0 && diffDays <= 7) return `${diffDays}天后`;
+		
+		return date.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
+	}
+
 	sortTodos(todos: TodoItem[]): TodoItem[] {
 		const sorted = [...todos];
 		const {sortBy} = this.plugin.settings;
@@ -139,6 +259,8 @@ getIcon(): string {
 		return sorted.sort((a, b) => {
 			switch (sortBy) {
 				case 'dueDate':
+					if (!a.dueDate) return 1;
+					if (!b.dueDate) return -1;
 					return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
 				case 'priority':
 					const priorityOrder = {high: 3, medium: 2, low: 1};
@@ -151,7 +273,33 @@ getIcon(): string {
 	}
 }
 
-// TODO编辑模态框
+class ConfirmModal extends Modal {
+	onConfirm: () => void;
+
+	constructor(app: App, title: string, message: string, onConfirm: () => void) {
+		super(app);
+		this.onConfirm = onConfirm;
+		this.titleEl.setText(title);
+		this.contentEl.createEl('p', {text: message});
+	}
+
+	onOpen(): void {
+		const {contentEl} = this;
+		const buttonContainer = contentEl.createEl('div', {cls: 'modal-button-container'});
+
+		const confirmButton = buttonContainer.createEl('button', {text: '确认', cls: 'mod-cta'});
+		confirmButton.addEventListener('click', () => {
+			this.onConfirm();
+			this.close();
+		});
+
+		const cancelButton = buttonContainer.createEl('button', {text: '取消'});
+		cancelButton.addEventListener('click', () => {
+			this.close();
+		});
+	}
+}
+
 class TodoModal extends Modal {
 	plugin: MyPlugin;
 	view: TodoView;
@@ -160,6 +308,7 @@ class TodoModal extends Modal {
 	descriptionInput: HTMLTextAreaElement;
 	prioritySelect: HTMLSelectElement;
 	dueDateInput: HTMLInputElement;
+	tagsInput: HTMLInputElement;
 
 	constructor(plugin: MyPlugin, view: TodoView, todo: TodoItem | null) {
 		super(plugin.app);
@@ -172,21 +321,20 @@ class TodoModal extends Modal {
 		const {contentEl} = this;
 		contentEl.empty();
 
-		// 添加标题
 		contentEl.createEl('h2', {text: this.todo ? '编辑任务' : '新建任务'});
 
-		// 创建表单
 		const form = contentEl.createEl('form', {cls: 'todo-form'});
 
-		// 标题输入
 		this.titleInput = this.createFormGroup(form, '标题', 'text') as HTMLInputElement;
 		this.titleInput.value = this.todo?.title || '';
+		this.titleInput.placeholder = '输入任务标题...';
+		this.titleInput.required = true;
 
-		// 描述输入
 		this.descriptionInput = this.createFormGroup(form, '描述', 'textarea') as HTMLTextAreaElement;
 		this.descriptionInput.value = this.todo?.description || '';
+		this.descriptionInput.placeholder = '添加详细描述（可选）...';
+		this.descriptionInput.rows = 4;
 
-		// 优先级选择
 		this.prioritySelect = this.createFormGroup(form, '优先级', 'select') as HTMLSelectElement;
 		const priorities: TodoPriority[] = ['low', 'medium', 'high'];
 		const priorityLabels = {low: '低', medium: '中', high: '高'};
@@ -194,36 +342,37 @@ class TodoModal extends Modal {
 			const option = document.createElement('option');
 			option.value = priority;
 			option.textContent = priorityLabels[priority];
-			if (this.todo?.priority === priority) {
+			if (this.todo?.priority === priority || (!this.todo && priority === this.plugin.settings.defaultPriority)) {
 				option.selected = true;
 			}
 			this.prioritySelect.appendChild(option);
 		});
 
-		// 截止日期输入
 		this.dueDateInput = this.createFormGroup(form, '截止日期', 'date') as HTMLInputElement;
 		if (this.todo?.dueDate) {
 			this.dueDateInput.value = this.todo.dueDate;
 		} else {
-			// 默认设置为今天
 			this.dueDateInput.valueAsDate = new Date();
 		}
 
-		// 保存按钮
-		const saveButton = form.createEl('button', {text: '保存', type: 'submit', cls: 'todo-save-button'});
+		this.tagsInput = this.createFormGroup(form, '标签', 'text') as HTMLInputElement;
+		this.tagsInput.value = this.todo?.tags?.join(', ') || '';
+		this.tagsInput.placeholder = '用逗号分隔多个标签（可选）...';
+
+		const buttonContainer = form.createEl('div', {cls: 'todo-form-actions'});
+
+		const saveButton = buttonContainer.createEl('button', {text: '保存', type: 'submit', cls: 'todo-save-button'});
 		form.addEventListener('submit', (e) => {
 			e.preventDefault();
 			this.saveTodo();
 		});
 
-		// 取消按钮
-		const cancelButton = form.createEl('button', {text: '取消', type: 'button', cls: 'todo-cancel-button'});
+		const cancelButton = buttonContainer.createEl('button', {text: '取消', type: 'button', cls: 'todo-cancel-button'});
 		cancelButton.addEventListener('click', () => {
 			this.close();
 		});
 	}
 
-	// 创建表单组
 	createFormGroup(form: HTMLFormElement, labelText: string, inputType: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
 		const groupEl = form.createEl('div', {cls: 'todo-form-group'});
 		groupEl.createEl('label', {text: labelText});
@@ -231,7 +380,6 @@ class TodoModal extends Modal {
 		let input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 		if (inputType === 'textarea') {
 			input = groupEl.createEl('textarea', {cls: 'todo-input'});
-			(input as HTMLTextAreaElement).rows = 3;
 		} else if (inputType === 'select') {
 			input = groupEl.createEl('select', {cls: 'todo-input'});
 		} else {
@@ -244,7 +392,6 @@ class TodoModal extends Modal {
 		return input;
 	}
 
-	// 保存TODO任务
 	saveTodo(): void {
 		const title = this.titleInput.value.trim();
 		if (!title) {
@@ -253,6 +400,11 @@ class TodoModal extends Modal {
 		}
 
 		const now = new Date().toISOString();
+		const tags = this.tagsInput.value
+			.split(',')
+			.map(tag => tag.trim())
+			.filter(tag => tag.length > 0);
+
 		const todoData: TodoItem = {
 			id: this.todo?.id || now + Math.random().toString(36).substr(2, 9),
 			title: title,
@@ -260,6 +412,7 @@ class TodoModal extends Modal {
 			priority: this.prioritySelect.value as TodoPriority,
 			dueDate: this.dueDateInput.value,
 			isCompleted: this.todo?.isCompleted || false,
+			tags: tags,
 			createdAt: this.todo?.createdAt || now,
 			updatedAt: now
 		};
@@ -277,7 +430,6 @@ class TodoModal extends Modal {
 	}
 }
 
-// 主插件类
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	todos: TodoItem[] = [];
@@ -286,18 +438,15 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 		await this.loadTodos();
 
-		// 注册视图
 		this.registerView(
 			VIEW_TYPE_TODO,
 			(leaf) => new TodoView(leaf, this)
 		);
 
-		// 添加侧边栏图标
 		this.addRibbonIcon('check-square', '待办事项', (evt: MouseEvent) => {
 			this.openTodoView();
 		});
 
-		// 添加命令
 		this.addCommand({
 			id: 'open-todo-view',
 			name: '打开待办事项',
@@ -306,7 +455,23 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
-		// 添加设置页面
+		this.addCommand({
+			id: 'create-quick-task',
+			name: '快速创建任务',
+			callback: () => {
+				this.openTodoView();
+				setTimeout(() => {
+					const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TODO);
+					if (leaves.length > 0) {
+						const view = leaves[0]?.view as TodoView;
+						if (view) {
+							new TodoModal(this, view, null).open();
+						}
+					}
+				}, 100);
+			}
+		});
+
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
@@ -314,37 +479,32 @@ export default class MyPlugin extends Plugin {
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TODO);
 	}
 
-	// 打开TODO视图
 	async openTodoView() {
 		const {workspace} = this.app;
 
-		// 检查是否已存在TODO视图
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE_TODO);
 
 		if (leaves.length > 0) {
-			// 已有视图，激活它
 			const leaf = leaves[0];
 			if (leaf) {
 				workspace.revealLeaf(leaf);
 			}
 		} else {
-			// 没有视图，创建新视图
-			const leaf = workspace.getRightLeaf(false);
+			const leaf = workspace.getLeaf('tab');
 			if (leaf) {
 				await leaf.setViewState({
-					type: VIEW_TYPE_TODO
+					type: VIEW_TYPE_TODO,
+					active: true
 				});
 				workspace.revealLeaf(leaf);
 			}
 		}
 	}
 
-	// 加载设置
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
 	}
 
-	// 保存设置
 	async saveSettings() {
 		await this.saveData({
 			...this.settings,
@@ -352,7 +512,6 @@ export default class MyPlugin extends Plugin {
 		});
 	}
 
-	// 加载TODO任务
 	async loadTodos() {
 		const saved = await this.loadData() as any;
 		if (saved && Array.isArray(saved.todos)) {
@@ -362,7 +521,6 @@ export default class MyPlugin extends Plugin {
 		}
 	}
 
-	// 保存TODO任务
 	async saveTodos() {
 		await this.saveData({
 			...this.settings,
@@ -370,13 +528,11 @@ export default class MyPlugin extends Plugin {
 		});
 	}
 
-	// 添加TODO任务
 	async addTodo(todo: TodoItem) {
 		this.todos.push(todo);
 		await this.saveTodos();
 	}
 
-	// 更新TODO任务
 	async updateTodo(todo: TodoItem) {
 		const index = this.todos.findIndex(t => t.id === todo.id);
 		if (index !== -1) {
@@ -385,14 +541,12 @@ export default class MyPlugin extends Plugin {
 		}
 	}
 
-	// 删除TODO任务
 	async deleteTodo(id: string) {
 		this.todos = this.todos.filter(todo => todo.id !== id);
 		await this.saveTodos();
 		new Notice('任务已删除');
 	}
 
-	// 切换TODO任务状态
 	async toggleTodo(id: string) {
 		const todo = this.todos.find(t => t.id === id);
 		if (todo) {

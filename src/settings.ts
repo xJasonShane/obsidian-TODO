@@ -12,6 +12,7 @@ export interface TodoItem {
 	priority: TodoPriority;
 	dueDate: string;
 	isCompleted: boolean;
+	tags: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -20,12 +21,18 @@ export interface TodoItem {
 export interface MyPluginSettings {
 	showCompleted: boolean;
 	sortBy: 'createdAt' | 'dueDate' | 'priority';
+	filterPriority: 'all' | 'high' | 'medium' | 'low';
+	filterTag: string;
+	defaultPriority: TodoPriority;
 }
 
 // 默认设置
 export const DEFAULT_SETTINGS: MyPluginSettings = {
 	showCompleted: true,
-	sortBy: 'createdAt'
+	sortBy: 'createdAt',
+	filterPriority: 'all',
+	filterTag: '',
+	defaultPriority: 'medium'
 }
 
 // 设置页面
@@ -67,6 +74,20 @@ export class SampleSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.sortBy)
 					.onChange(async (value) => {
 						this.plugin.settings.sortBy = value as 'createdAt' | 'dueDate' | 'priority';
+						await this.plugin.saveSettings();
+					}));
+
+			// 默认优先级设置
+			new Setting(containerEl)
+				.setName('默认优先级')
+				.setDesc('创建新任务时的默认优先级')
+				.addDropdown(dropdown => dropdown
+					.addOption('low', '低')
+					.addOption('medium', '中')
+					.addOption('high', '高')
+					.setValue(this.plugin.settings.defaultPriority)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultPriority = value as TodoPriority;
 						await this.plugin.saveSettings();
 					}));
 		}
